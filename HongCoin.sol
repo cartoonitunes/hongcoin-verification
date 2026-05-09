@@ -10,9 +10,6 @@ contract owned {
         _
     }
 
-    function transferOwnership(address newOwner) onlyOwner {
-        owner = newOwner;
-    }
 }
 
 contract tokenRecipient { function receiveApproval(address _from, uint256 _value, address _token, bytes _extraData); }
@@ -39,20 +36,20 @@ contract token {
         uint8 decimalUnits,
         string tokenSymbol
         ) {
-        balanceOf[msg.sender] = initialSupply;              // Give the creator all initial tokens
-        totalSupply = initialSupply;                        // Update total supply
-        name = tokenName;                                   // Set the name for display purposes
-        symbol = tokenSymbol;                               // Set the symbol for display purposes
-        decimals = decimalUnits;                            // Amount of decimals for display purposes
+        balanceOf[msg.sender] = initialSupply;
+        totalSupply = initialSupply;
+        name = tokenName;
+        symbol = tokenSymbol;
+        decimals = decimalUnits;
     }
 
     /* Send coins */
     function transfer(address _to, uint256 _value) {
-        if (balanceOf[msg.sender] < _value) throw;           // Check if the sender has enough
-        if (balanceOf[_to] + _value < balanceOf[_to]) throw; // Check for overflows
-        balanceOf[msg.sender] -= _value;                     // Subtract from the sender
-        balanceOf[_to] += _value;                            // Add the same to the recipient
-        Transfer(msg.sender, _to, _value);                   // Notify anyone listening that this transfer took place
+        if (balanceOf[msg.sender] < _value) throw;
+        if (balanceOf[_to] + _value < balanceOf[_to]) throw;
+        balanceOf[msg.sender] -= _value;
+        balanceOf[_to] += _value;
+        Transfer(msg.sender, _to, _value);
     }
 
     /* Allow another contract to spend some tokens in your behalf */
@@ -66,11 +63,11 @@ contract token {
 
     /* A contract attempts to get the coins */
     function transferFrom(address _from, address _to, uint256 _value) returns (bool success) {
-        if (balanceOf[_from] < _value) throw;                 // Check if the sender has enough
-        if (balanceOf[_to] + _value < balanceOf[_to]) throw;  // Check for overflows
-        if (_value > allowance[_from][msg.sender]) throw;     // Check allowance
-        balanceOf[_from] -= _value;                          // Subtract from the sender
-        balanceOf[_to] += _value;                            // Add the same to the recipient
+        if (balanceOf[_from] < _value) throw;
+        if (balanceOf[_to] + _value < balanceOf[_to]) throw;
+        if (_value > allowance[_from][msg.sender]) throw;
+        balanceOf[_from] -= _value;
+        balanceOf[_to] += _value;
         allowance[_from][msg.sender] -= _value;
         Transfer(_from, _to, _value);
         return true;
@@ -78,7 +75,7 @@ contract token {
 
     /* This unnamed function is called whenever someone tries to send ether to it */
     function () {
-        throw;     // Prevents accidental sending of ether
+        throw;
     }
 }
 
@@ -93,7 +90,6 @@ contract MyAdvancedToken is owned, token {
     /* This generates a public event on the blockchain that will notify clients */
     event FrozenFunds(address target, bool frozen);
 
-    /* Initializes contract with initial supply tokens to the creator of the contract */
     function MyAdvancedToken(
         uint256 initialSupply,
         string tokenName,
@@ -101,29 +97,26 @@ contract MyAdvancedToken is owned, token {
         string tokenSymbol,
         address centralMinter
     ) token (initialSupply, tokenName, decimalUnits, tokenSymbol) {
-        if(centralMinter != 0 ) owner = centralMinter;      // Sets the owner as specified (if centralMinter is not specified the owner is msg.sender)
-        balanceOf[owner] = initialSupply;                   // Update total supply
+        if(centralMinter != 0 ) owner = centralMinter;
+        balanceOf[owner] = initialSupply;
     }
 
-    /* Send coins */
     function transfer(address _to, uint256 _value) {
-        if (balanceOf[msg.sender] < _value) throw;          // Check if the sender has enough
-        if (balanceOf[_to] + _value < balanceOf[_to]) throw; // Check for overflows
-        if (frozenAccount[msg.sender]) throw;              // Check if frozen
-        balanceOf[msg.sender] -= _value;                   // Subtract from the sender
-        balanceOf[_to] += _value;                          // Add the same to the recipient
-        Transfer(msg.sender, _to, _value);                 // Notify anyone listening that this transfer took place
+        if (balanceOf[msg.sender] < _value) throw;
+        if (balanceOf[_to] + _value < balanceOf[_to]) throw;
+        if (frozenAccount[msg.sender]) throw;
+        balanceOf[msg.sender] -= _value;
+        balanceOf[_to] += _value;
+        Transfer(msg.sender, _to, _value);
     }
 
-
-    /* A contract attempts to get the coins */
     function transferFrom(address _from, address _to, uint256 _value) returns (bool success) {
-        if (frozenAccount[_from]) throw;                        // Check if frozen
-        if (balanceOf[_from] < _value) throw;                 // Check if the sender has enough
-        if (balanceOf[_to] + _value < balanceOf[_to]) throw;  // Check for overflows
-        if (_value > allowance[_from][msg.sender]) throw;   // Check allowance
-        balanceOf[_from] -= _value;                          // Subtract from the sender
-        balanceOf[_to] += _value;                            // Add the same to the recipient
+        if (frozenAccount[_from]) throw;
+        if (balanceOf[_from] < _value) throw;
+        if (balanceOf[_to] + _value < balanceOf[_to]) throw;
+        if (_value > allowance[_from][msg.sender]) throw;
+        balanceOf[_from] -= _value;
+        balanceOf[_to] += _value;
         allowance[_from][msg.sender] -= _value;
         Transfer(_from, _to, _value);
         return true;
@@ -132,8 +125,8 @@ contract MyAdvancedToken is owned, token {
     function mintToken(address target, uint256 mintedAmount) onlyOwner {
         balanceOf[target] += mintedAmount;
         totalSupply += mintedAmount;
-        Transfer(0, this, mintedAmount);
-        Transfer(this, target, mintedAmount);
+        Transfer(0, owner, mintedAmount);
+        Transfer(owner, target, mintedAmount);
     }
 
     function freezeAccount(address target, bool freeze) onlyOwner {
@@ -146,23 +139,25 @@ contract MyAdvancedToken is owned, token {
         buyPrice = newBuyPrice;
     }
 
-    function buy() returns (uint amount){
-        amount = msg.value / buyPrice;                     // calculates the amount
-        if (balanceOf[this] < amount) throw;               // checks if it has enough to sell
-        balanceOf[msg.sender] += amount;                   // adds the amount to buyer's balance
-        balanceOf[this] -= amount;                         // subtracts amount from seller's balance
-        Transfer(this, msg.sender, amount);                // execute an event reflecting the change
+    function buy() {
+        uint amount = msg.value / buyPrice;
+        if (balanceOf[this] < amount) throw;
+        balanceOf[msg.sender] += amount;
+        balanceOf[this] -= amount;
+        Transfer(this, msg.sender, amount);
     }
 
-    function sell(uint amount) returns (uint revenue){
-        if (balanceOf[msg.sender] < amount ) throw;        // checks if the sender has enough to sell
-        balanceOf[this] += amount;                         // adds the amount to owner's balance
-        balanceOf[msg.sender] -= amount;                   // subtracts the amount from seller's balance
-        if (!msg.sender.send(amount * sellPrice)) {        // sends ether to the seller. It's important
-            throw;                                         // to do this last to avoid recursion attacks
-        } else {
-            Transfer(msg.sender, this, amount);              // executes an event reflecting on the change
-            revenue = amount * sellPrice;                    // ends function and returns
+    function sell(uint amount) {
+        if (balanceOf[msg.sender] < amount) throw;
+        balanceOf[this] += amount;
+        balanceOf[msg.sender] -= amount;
+        if (!msg.sender.send(amount * sellPrice)) {
+            balanceOf[msg.sender] += amount;
         }
+        Transfer(msg.sender, this, amount);
+    }
+
+    function transferOwnership(address newOwner) onlyOwner {
+        owner = newOwner;
     }
 }
